@@ -234,9 +234,9 @@ stdenv.mkDerivation (finalAttrs: {
     homepage = "https://webkitgtk.org/";
     license = licenses.bsd2;
     pkgConfigModules = [
-      "javascriptcoregtk-4.0"
-      "webkit2gtk-4.0"
-      "webkit2gtk-web-extension-4.0"
+      "javascriptcoregtk-6.0"
+      "webkit2gtk-6.0"
+      "webkit2gtk-web-extension-6.0"
     ];
     platforms = platforms.linux ++ platforms.darwin;
     maintainers = teams.gnome.members;
