@@ -43,6 +43,15 @@ rustPlatform.buildRustPackage rec {
     '';
   };
 
+  postPatch = lib.optional stdenv.isDarwin ''
+    pushd $cargoDepsCopy/karabiner-driverkit
+    oldHash=$(sha256sum build.rs | cut -d " " -f 1)
+    patch -p2 -i ${./dext_only.patch}
+    substituteInPlace .cargo-checksum.json \
+      --replace-fail $oldHash $(sha256sum build.rs | cut -d " " -f 1)
+    popd
+  '';
+
   buildInputs = lib.optionals stdenv.isDarwin [ darwin.apple_sdk.frameworks.IOKit ];
 
   buildFeatures = lib.optional withCmd "cmd";
