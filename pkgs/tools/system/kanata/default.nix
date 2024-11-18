@@ -52,7 +52,7 @@ rustPlatform.buildRustPackage rec {
     popd
   '';
 
-  buildInputs = lib.optionals stdenv.isDarwin [ darwin.apple_sdk.frameworks.IOKit ];
+  buildInputs = lib.optionals stdenv.isDarwin [ darwin.apple_sdk_11_0.frameworks.IOKit ];
 
   buildFeatures = lib.optional withCmd "cmd";
 
