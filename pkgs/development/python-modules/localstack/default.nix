@@ -20,6 +20,21 @@
   semver,
   setuptools,
   tailer,
+  botocore,
+  awscrt,
+  cbor2,
+  dnspython,
+  jsonpatch,
+  hypercorn,
+  localstack-twisted,
+  openapi-core,
+  pyopenssl,
+  readerwriterlock,
+  requests-aws4auth,
+  urllib3,
+  Werkzeug,
+  xmltodict,
+  rolo
 }:
 
 buildPythonPackage rec {
@@ -59,6 +74,18 @@ buildPythonPackage rec {
   pythonRelaxDeps = [ "dill" ];
 
   pythonImportsCheck = [ "localstack" ];
+
+  optional-dependencies = {
+    base-runtime = [ boto3 botocore awscrt cbor2 dnspython jsonpatch hypercorn localstack-twisted openapi-core
+  pyopenssl
+  readerwriterlock
+  requests-aws4auth
+  urllib3
+  Werkzeug
+  xmltodict
+  rolo
+  ];
+  };
 
   # Test suite requires boto, which has been removed from nixpkgs
   # Just do minimal test, buildPythonPackage maps checkPhase
