@@ -1,80 +1,79 @@
 {
   lib,
   stdenv,
-  buildNpmPackage,
   fetchFromGitHub,
   electron_36,
   darwin,
   copyDesktopItems,
   makeDesktopItem,
+  nix-update-script,
+  mpv,
+  nodejs,
+  pnpm,
+  makeWrapper,
   ...
 }:
 let
   pname = "feishin";
-  version = "0.12.6";
+  version = "0.18.0";
 
   src = fetchFromGitHub {
     owner = "jeffvli";
     repo = "feishin";
     rev = "v${version}";
-    hash = "sha256-cnlPks/sJdcxHdIppHn8Q8d2tkwVlPMofQxjdAlBreg=";
+    hash = "sha256-4gcS7Vd7LSpEByO2Hlk6nb8V2adBPh5XwWGCu2lwOA4=";
   };
 
   electron = electron_36;
 in
-buildNpmPackage {
-  inherit pname version;
 
-  inherit src;
-  npmDepsHash = "sha256-lThh29prT/cHRrp2mEtUW4eeVfCtkk+54EPNUyGHyq8=";
+stdenv.mkDerivation (finalAttrs: {
+  inherit pname version src;
 
-  npmFlags = [ "--legacy-peer-deps" ];
-  makeCacheWritable = true;
+  pnpmDeps = pnpm.fetchDeps {
+    inherit (finalAttrs)
+      pname
+      version
+      src
+      ;
+    fetcherVersion = 2;
+    hash = "sha256-jAeZ0njJfVtH8RG3kxcfC92eXqzDwoqInrRWkH/7QM4=";
+  };
 
   env.ELECTRON_SKIP_BINARY_DOWNLOAD = "1";
 
   nativeBuildInputs =
-    lib.optionals (stdenv.hostPlatform.isLinux) [ copyDesktopItems ]
+    [
+      makeWrapper
+      nodejs
+      pnpm.configHook
+    ]
+    ++ lib.optionals (stdenv.hostPlatform.isLinux) [ copyDesktopItems ]
     ++ lib.optionals stdenv.hostPlatform.isDarwin [ darwin.autoSignDarwinBinariesHook ];
 
   postPatch =
     ''
       # release/app dependencies are installed on preConfigure
       substituteInPlace package.json \
-        --replace-fail "electron-builder install-app-deps &&" ""
+        --replace-fail "electron-builder install-app-deps" ""
 
       # Don't check for updates.
-      substituteInPlace src/main/main.ts \
+      substituteInPlace src/main/index.ts \
         --replace-fail "autoUpdater.checkForUpdatesAndNotify();" ""
     ''
     + lib.optionalString stdenv.hostPlatform.isLinux ''
       # https://github.com/electron/electron/issues/31121
-      substituteInPlace src/main/main.ts \
+      substituteInPlace src/main/index.ts \
         --replace-fail "process.resourcesPath" "'$out/share/feishin/resources'"
     '';
 
-  preConfigure =
-    let
-      releaseAppDeps = buildNpmPackage {
-        pname = "${pname}-release-app";
-        inherit version;
+  buildPhase = ''
+    runHook preBuild
 
-        src = "${src}/release/app";
-        npmDepsHash = "sha256-kEe5HH/oslH8vtAcJuWTOLc0ZQPxlDVMS4U0RpD8enE=";
+    pnpm build
 
-        npmFlags = [ "--ignore-scripts" ];
-        dontNpmBuild = true;
-
-        env.ELECTRON_SKIP_BINARY_DOWNLOAD = "1";
-      };
-      releaseNodeModules = "${releaseAppDeps}/lib/node_modules/feishin/node_modules";
-    in
-    ''
-      for release_module_path in "${releaseNodeModules}"/*; do
-        rm -rf node_modules/"$(basename "$release_module_path")"
-        ln -s "$release_module_path" node_modules/
-      done
-    '';
+    runHook postBuild
+  '';
 
   postBuild =
     lib.optionalString stdenv.hostPlatform.isDarwin ''
@@ -106,7 +105,7 @@ buildNpmPackage {
     ''
     + lib.optionalString stdenv.hostPlatform.isLinux ''
       mkdir -p $out/share/feishin
-      pushd release/build/*/
+      pushd dist/linux*
       cp -r locales resources{,.pak} $out/share/feishin
       popd
 
@@ -127,6 +126,9 @@ buildNpmPackage {
       done
     ''
     + ''
+      wrapProgram "$out/bin/feishin" \
+        --prefix PATH : "${lib.makeBinPath [ mpv ]}"
+
       runHook postInstall
     '';
 
@@ -140,10 +142,16 @@ buildNpmPackage {
       categories = [
         "Audio"
         "AudioVideo"
+        "Player"
       ];
       mimeTypes = [ "x-scheme-handler/feishin" ];
     })
   ];
+
+  passthru = {
+    inherit (finalAttrs) pnpmDeps;
+    updateScript = nix-update-script { };
+  };
 
   meta = {
     description = "Full-featured Subsonic/Jellyfin compatible desktop music player";
@@ -158,4 +166,4 @@ buildNpmPackage {
       jlbribeiro
     ];
   };
-}
+})
