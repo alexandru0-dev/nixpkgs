@@ -185,6 +185,7 @@ buildGoModule (finalAttrs: {
     maintainers = with lib.maintainers; [
       iedame
       alexandru0-dev
+      phanirithvij
     ];
     mainProgram = "backrest";
     platforms = lib.platforms.unix;
